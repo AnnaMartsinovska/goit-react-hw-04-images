@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyledWrap } from './App.styled';
 import { Searchbar } from './searchbar/Searchbar';
 import { fetchImages } from '../services/api';
@@ -8,80 +8,71 @@ import { Button } from './button/Button';
 import { Modal } from './modal/Modal';
 import { Dna } from 'react-loader-spinner';
 
-export default class App extends React.Component {
-  state = {
-    loading: false,
-    error: null,
-    images: [],
-    q: '',
-    per_page: 12,
-    page: 1,
-    isOpen: false,
-    content: null,
-    total: '',
-  };
+export const App = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [images, setImages] = useState([]);
+  const [q, setQ] = useState('');
+  const [per_page, setPer_page] = useState(12);
+  const [page, setPage] = useState(1);
+  const [isOpen, setIsOpen] = useState(false);
+  const [content, setContent] = useState(null);
+  const [total, setTotal] = useState('');
 
-  async componentDidUpdate(prevProps, prevState) {
-    const { per_page, page, q } = this.state;
-
-    if (prevState.page !== page || prevState.q !== q) {
-      this.setState({ loading: true });
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
 
       try {
         const data = await fetchImages({ per_page, page, q });
-        this.setState(prev => ({
-          images: [...prev.images, ...data.hits],
-          total: data.totalHits,
-        }));
+        setImages(prev => [...prev, ...data.hits]);
+        setTotal(data.totalHits);
       } catch (error) {
-        this.setState({ error: error.message }, () =>
-          toast.error(error.message)
-        );
+        setError(error.message);
+        toast.error(error.message);
       } finally {
-        this.setState({ loading: false });
+        setLoading(false);
       }
+    };
+
+    if (page > 1 || q) {
+      fetchData();
     }
-  }
+  }, [page, q, per_page]);
 
-  handleSetQuerry = q => {
-    this.setState({ q, images: [], page: 1 });
+  const handleSetQuerry = q => {
+    setQ(q);
+    setPage(1);
+    setImages([]);
   };
 
-  handleLoadMore = () => {
-    this.setState(prev => ({ page: prev.page + 1 }));
+  const handleLoadMore = () => {
+    setPage(prev => prev + 1);
   };
 
-  toggleModal = content => {
-    this.setState(prev => ({
-      isOpen: !prev.isOpen,
-      content,
-    }));
+  const toggleModal = content => {
+    setIsOpen(prev => !prev);
+    setContent(content);
   };
 
-  render() {
-    const { images, isOpen, content, total, loading } = this.state;
+  return (
+    <StyledWrap>
+      <Searchbar setQuerry={handleSetQuerry} />
+      {loading && !images.length ? (
+        <Dna
+          visible={true}
+          height="80"
+          width="80"
+          ariaLabel="dna-loading"
+          wrapperStyle={{}}
+          wrapperClass="dna-wrapper"
+        />
+      ) : (
+        <ImageGallery images={images} toggleModal={toggleModal} />
+      )}
 
-    return (
-      <StyledWrap>
-        <Searchbar setQuerry={this.handleSetQuerry} />
-        {loading && !images.length ? (
-          <Dna
-            visible={true}
-            height="80"
-            width="80"
-            ariaLabel="dna-loading"
-            wrapperStyle={{}}
-            wrapperClass="dna-wrapper"
-          />
-        ) : (
-          <ImageGallery images={images} toggleModal={this.toggleModal} />
-        )}
-
-        {total > images.length ? (
-          <Button onClick={this.handleLoadMore} />
-        ) : null}
-        {isOpen ? <Modal close={this.toggleModal} content={content} /> : null}
-      </StyledWrap>
-    );
-  }
-}
+      {total > images.length ? <Button onClick={handleLoadMore} /> : null}
+      {isOpen ? <Modal close={toggleModal} content={content} /> : null}
+    </StyledWrap>
+  );
+};
