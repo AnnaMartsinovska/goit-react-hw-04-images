@@ -13,7 +13,6 @@ export const App = () => {
   const [error, setError] = useState(null);
   const [images, setImages] = useState([]);
   const [q, setQ] = useState('');
-  const [per_page, setPer_page] = useState(12);
   const [page, setPage] = useState(1);
   const [isOpen, setIsOpen] = useState(false);
   const [content, setContent] = useState(null);
@@ -24,12 +23,11 @@ export const App = () => {
       setLoading(true);
 
       try {
-        const data = await fetchImages({ per_page, page, q });
+        const data = await fetchImages({ page, q });
         setImages(prev => [...prev, ...data.hits]);
         setTotal(data.totalHits);
       } catch (error) {
         setError(error.message);
-        toast.error(error.message);
       } finally {
         setLoading(false);
       }
@@ -38,7 +36,11 @@ export const App = () => {
     if (page > 1 || q) {
       fetchData();
     }
-  }, [page, q, per_page]);
+  }, [page, q]);
+
+  useEffect(() => {
+    error && toast.error(error);
+  }, [error]);
 
   const handleSetQuerry = q => {
     setQ(q);
@@ -76,5 +78,3 @@ export const App = () => {
     </StyledWrap>
   );
 };
-
-const nothing = 56;
